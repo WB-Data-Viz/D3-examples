@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        .chart-container {
+            max-width: 1500px;
+            margin: 0 auto;
+            /* auto centers the div */
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        svg {
+            overflow: visible;
+        }
+
+
+        h1 {
+            text-align: center;
+            padding-bottom: 20px;
+        }
+
+        .pop-up {
+            position: absolute; 
+            border: 1px solid black;
+            border-radius: 1px;
+            pointer-events: none;
+            background-color: white;
+            padding: 10px;
+        }
+
+
+        .source {
+            margin-top: 600px;
+            margin-left: 30px;
+        }
+
+        .legend {
+            position:absolute;
+	        left:20px;
+	        top:30px;
+            }
+
+    </style>
+    <!-- add your script blocks at the end -->
+
+</head>
+
+<body>
+    <div class="chart-container">
+        <h1 class="headline">
+            Population Changes in California
+        </h1>
+
+        <svg width="1050px" height="100px">
+
+        </svg>
+
+        <div class="pop-up">
+        </div>
+        <div class = "source">
+        <p>Since 2010, people have moved around in California. See how populations have changed in the past 9 years.</p> 
+            Source: ca.gov
+        </div>
+    </div>
+</body>
+
+
+<!-- we're using d3 version 6 (the latest version) for all out work -->
+<script src="https://d3js.org/d3.v6.min.js"></script>
+
+<!-- load topojson script -->
+<script src="https://unpkg.com/topojson@3"></script>
+<script src="https://unpkg.com/d3-svg-legend@1.13.0/d3-legend.min.js"></script>
+
+
+<script>
+    let w = 1250;
+    let h = 700;
+
+    let margin = {top: 200, bottom: 0, left: 70, right: 40 };
+    let width = w - margin.left - margin.right;
+    let height = h - margin.top - margin.bottom
+
+    let svg = d3.select("body").select("svg")
+    .attr("transform", "translate(0" + margin.left + "," + margin.top + ")");
+
+//steps to save the .json on mapshaper:
+//1. import county, save as points
+// 2. import poverty, change join column to the same format (strings)
+// 3. join poverty data using common GEOFIPS
+// 4. add state
+// 5. export all as topo json
+    d3.json('output2.json').then(function (data) { 
+
+
+        let counties = topojson.feature(data, data.objects.county)
+        let state = topojson.feature(data, data.objects.cb_2018_us_state_20m)
+        console.log(counties)
+
+        let myProjection = d3.geoIdentity() // already did albers in mapshaper
+            .fitSize([width, height], state)
+            .reflectY(true) // flip the mapshaper layer
+
+        //path function
+        let path = d3.geoPath(myProjection)
+
+        let color = d3.scaleDiverging()
+         .domain([-.124, 0, .125, .0325, .05, .075, .143])
+        .interpolator(d3.interpolatePiYG)
+
+        let shapes = svg.append("g")
+            .selectAll("path")
+            .data(counties.features)
+            .join("path")
+            .attr("d", path) // the d attribute defines the path to be drawn.
+            .style("stroke", "white")
+            .style("stroke-width", 1)
+            .style("fill", function(d) {
+                 var value = d.properties.change;
+                 if(value) {
+                     return color(value);
+                 } else {
+                     return "#ccc"
+                 }
+                
+             })
+            .attr("class", function (d) { return "shapes p-" + d.properties.counties}) 
+            .attr("opacity", 0.9)
+
+// https://bl.ocks.org/wboykinm/dbbe50d1023f90d4e241712395c27fb3
+        var legend = svg.append("defs")
+			.append("svg:linearGradient")
+			.attr("id", "gradient")
+			.attr("x1", "100%")
+			.attr("y1", "10%")
+			.attr("x2", "100%")
+			.attr("y2", "70%")
+			.attr("spreadMethod", "pad");
+
+		legend.append("stop")
+			.attr("offset", "0%")
+			.attr("stop-color", "#dd1f58")
+			.attr("stop-opacity", 1);
+
+        legend.append("stop")
+			.attr("offset", "10%")
+			.attr("stop-color", "white")
+			.attr("stop-opacity", 1);
+
+		legend.append("stop")
+			.attr("offset", "100%")
+			.attr("stop-color", "green")
+			.attr("stop-opacity", 1);
+
+		svg.append("rect")
+			.attr("width", 30)
+			.attr("height", 150)
+			.style("fill", "url(#gradient)")
+			.attr("transform", "translate(0,10)");
+
+        var y = d3.scaleLinear()
+		.range([150, 0])
+		.domain([-.124, .143]);
+
+		var yAxis = d3.axisRight(y);
+
+    		svg.append("g")
+			.attr("class", "y axis")
+			.attr("transform", "translate(41,10)")
+			.call(yAxis)
+
+            let popup = d3.select(".pop-up");
+
+            shapes.on("mouseover", (event, d) => {
+                
+                shapes
+                .style("stroke", "white")
+                .style("stroke-width", 1)
+                .style("fill-opacity", 1)
+                
+                svg.select(".p-" + d.properties.COUNTYFP) // make every selection unique - calling back the class we defined.
+                    .style("stroke-width", 2)
+                    .raise()
+
+                let lang = d.properties.NAMELSAD + ": <b>" + d.properties.change + "</b> change in population"
+
+                popup
+                    .style("opacity", 0.9)
+                    .style("left", (event.x + 20) + "px")
+                    .style("top", (event.y - 20) + "px")
+                    .html(lang)
+            })
+
+            shapes.on("mouseout", (event, d) => {
+                console.log(event)
+                shapes
+                    svg.select(".p-" + d.properties.COUNTYFP)
+                    .style("stroke-width", 0.9)
+                    .raise()
+
+                popup
+                    .style("opacity", 0) // pop up becomes invisible when we mouseout
+            })
+
+
+        })
+
+</script>

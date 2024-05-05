@@ -1,0 +1,98 @@
+---
+title: "Week 1 Lecture"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+library(zoo)
+library(ggtext)
+library(ggforce)
+```
+
+```{r}
+#states = read_csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv", col_types = cols(.default = "c")) #Read everything as a character, and declare later things as numeric 
+
+states = read_csv("hw1-data.csv")
+
+states.clean = states %>% mutate(fips = ifelse(state == "New England", 67, fips))
+
+states.clean = states.clean %>% 
+  mutate(cases = as.numeric(cases),
+         deaths = as.numeric(deaths),
+         date = as.Date(date)) ## default Date arguments need to be year, month, and day for this function to work.
+
+```
+
+*1.How many unique values are in the state variable?*
+There are 57 unique values in the state variable
+```{r}
+length(unique(states$state)) ## 57 
+```
+*2.List the unique values in the state variable.*
+Includes territories and USA (Virgin Islands, Northern Mariana Islands, Guam, etc.)
+```{r}
+unique(sort(states$state))
+```
+3.Make a coronavirus chart for the United States and California
+```{r}
+california = states.clean %>% 
+  filter(state == "California") %>%
+  arrange(date) %>% 
+  mutate(daily_cases = cases - lag(cases), #calculate daily rather than cumulative cases
+         roll_avg_7 = rollmean(x=daily_cases, k = 7, align = "right", na.pad = T),  #add a layer for rolling 7 day averages to reduce noise
+         first_vaccine = ifelse(date == "2020-12-14", 1, 0)
+  )
+
+states_averages = states.clean %>% 
+  group_by(state) %>%
+  arrange(date) %>% 
+  mutate(daily_cases = cases - lag(cases), #calculate daily rather than cumulative cases
+         roll_avg_7 = rollmean(x=daily_cases, k = 7, align = "right", na.pad = T),  #add a layer for rolling 7 day averages to reduce noise
+         first_vaccine = ifelse(date == "2020-12-14", 1, 0)
+  )
+
+
+make_graphs = function(df, state_name, flag) {
+  df %>% 
+    filter(state == state_name) %>%
+  ggplot(aes(x=date, y = roll_avg_7)) +
+  geom_bar(stat = "identity", aes(x=date, daily_cases), alpha = 0.3) + 
+  ## alpha de-emphasizes the noise 
+  geom_line(color = "maroon", size = 1) + 
+  theme_minimal() +
+  labs(y= "Daily Case Counts", 
+       x = "",
+       title = paste("Daily COVID19 cases in <span style = 'color:maroon'><b>",state_name,"</b></span>", "<img src =", flag, "flag width = '25'>")) + 
+  theme(plot.title = element_markdown()) +
+  ggforce::geom_mark_circle(aes(filter = first_vaccine == "1"), 
+                            description = "Vaccine rollout begins", 
+                            color = "maroon",
+                            label.fontsize = 9,
+                            label.buffer = unit(20, "mm"),
+                            label.margin = margin(2,2,2,2, "mm"),
+                            label.minwidth = unit(30, "mm")) + 
+    scale_y_continuous(labels = scales::comma)
+}
+
+
+california_chart = make_graphs(states_averages, "California", 'ca_flag_cropped.png')
+usa_chart = make_graphs(states_averages, "USA", 'usa_flag.png')
+
+pdf("C:/Users/yinin/Documents/GitHub/dataviz-class/Week1_CovidData/CovidCases.pdf")
+
+make_graphs(states_averages, "California", 'ca_flag_cropped.png')
+make_graphs(states_averages, "USA", 'usa_flag.png')
+
+print(california_chart)
+print(usa_chart)
+
+while (!is.null(dev.list()))  dev.off()
+
+
+dev.off() ## tell R to stop saving everything i print
+```
+
+4.Make a PDF of those charts.5.Submit your R script and PDF.
+

@@ -1,0 +1,108 @@
+---
+title: "Lecture2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(tidyverse)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
+
+global <- read.csv(url) %>% 
+  pivot_longer(cols = 5:442, names_to = "date", values_to = "count") %>%
+  select(-Lat, -Long)
+
+global$date = gsub('X', '', global$date)
+
+global$date = gsub('[.]', '/', global$date)
+
+## Look at data
+global %>% 
+  group_by(Country.Region) %>%
+  count() ## see, why is there so many Australia observations?
+
+## We find out all the territories are grouped to australia
+global.clean %>%
+  filter(Country.Region == "Australia") %>% View()
+
+## Change the date formats
+## So we want to aggreaget them 
+global.clean = global %>%
+  separate(date, into = c("month", "day", "year")) %>% 
+  mutate(month = str_pad(month, width = 2, pad = "0"),
+         day = str_pad(day, width = 2, pad = "0"),
+         year = str_c("20", year, sep= ""),
+         date = as.Date(str_c(year, month, day, sep = "-")),
+         count = as.numeric(count)) %>%
+  select(-c(month, day, year)) %>%
+  group_by(Country.Region, date) %>%
+  arrange(date) %>%
+  summarise(county = sum(count, na.rm = T)) %>%
+  ungroup() #some program hygiene
+
+# double check that we have the right number of countries
+global.clean %>% 
+  group_by(Country.Region) %>%
+  count()
+
+global.clean = global.clean %>% rename(count = county)
+# a gut check
+global.clean %>% filter(Country.Region == "Australia", date == as.Date("2020-04-29")) %>%
+  mutate(count= as.numeric(count)) %>% summarise(count = sum(count))
+
+```
+
+## Including Plots
+
+
+```{r pressure, echo=FALSE}
+
+
+interest = c("US", "United Kingdom", "Spain", "France", "India", "Brazil")
+
+global.interest = global.clean %>%
+  filter(Country.Region %in% interest)
+
+global.interest.reindexed = global.interest %>% 
+  filter(count >= 10) %>% 
+  group_by(Country.Region) %>% 
+  mutate(base_date = first(date), ## reindex data to first virus date of each country 
+         diff = date - base_date, # we need to turn this to unmeric
+         number_of_day = as.numeric(diff, "days"))
+
+makeChart = function(enddate) {
+  print(as.character(enddate))
+ # pdf(str_c("curve/curve", enddate, ".pdf"))
+  
+  chartData = global.interest.reindexed %>%
+    filter(date <= enddate)
+p= chartData  %>%
+  ggplot(aes(number_of_day, count, group = Country.Region)) + 
+  geom_line(aes(color = Country.Region))+
+  scale_y_log10() + # each line is increasing to the ten
+  geom_text(data = global.interest.reindexed %>%
+              group_by(Country.Region) %>%
+                         slice(n()) %>% 
+              ungroup(), aes(number_of_day, count, label = Country.Region), color = "red") +
+  ggtitle(str_c("As of", enddate))
+print(p)
+}
+
+dates = seq(as.Date("2020-03-01"), as.Date("2020-09-01"), by = "3 days")
+
+dates %>%
+  walk(makeChart) ## look at change in cases every 3 days 
+
+makeChart(dates[1]) # look at just the first case.
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

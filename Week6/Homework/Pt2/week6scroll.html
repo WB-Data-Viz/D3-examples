@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        .source {
+            margin-top: 30px;
+            margin-left: 30px;
+
+        }
+
+        .chart-container {
+            max-width: 1050lpx;
+            margin: 0 auto;
+            /* auto centers the div */
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        svg {
+            overflow: visible;
+        }
+
+
+        h1 {
+            border: 2px
+        }
+
+        svg .y.axis .domain {
+            display: none;
+        }
+
+        svg .x.axis .domain {
+            display: none;
+        }
+
+        .filler {
+            height: 20rem;
+            text-align: center;
+        }
+    
+        svg .y.axis .tick line {
+            display: none;
+        }
+
+        svg .y.axis .tick text {
+            font-size: 14px;
+        }
+
+        svg .x.axis .tick text {
+            font-size: 14px;
+        }
+
+
+        .filler p {
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+            font-size: 24px;
+            text-align: left;
+            margin: 20px auto;
+            line-height: 1.2;
+            max-width: 600px
+            
+        }
+
+        #scrolly-overlay .scrolly {
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+            font-size: 24px;
+            max-width: 60rem;
+            margin: 3rem auto;
+            background-color: #f4f4f4;
+            padding: 1rem;
+            position: relative;
+
+        }
+
+        #scrolly-overlay .scrolly article {
+            padding: 0;
+            max-width: 30rem;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        #scrolly-overlay .scrolly article .step {
+            min-height: 67vh;
+            margin-bottom: 1rem;
+        }
+
+        #scrolly-overlay .scrolly article .step:last-of-type {
+            margin-bottom: 0;
+        }
+
+        #scrolly-overlay .scrolly article .step.is-active p {
+            background-color: #aa137d;
+        }
+
+        #scrolly-overlay .scrolly article .step p {
+            margin: 0;
+            padding: 1rem;
+            text-align: center;
+            font-weight: 400;
+            background-color: #5b5b5b;
+            transition: background-color 250ms ease-in-out;
+            color: #f4f4f4;
+        }
+
+        #scrolly-overlay .scrolly figure.sticky {
+            /* this is the key style for the chart */
+            position: sticky;
+            width: 100%;
+            height: 50vh;
+            /* vh is the unit that divdes the viewport in units of 1/100 */
+            /* height is 50 vh = half the height of the viewport */
+            margin: 0;
+            top: 25vh;
+            /* this is how high it should be from top */
+
+            left: 0;
+        }
+
+        .spacer {
+            height: 1500px;
+        }
+        .highlight {
+            text-decoration: underline;
+            color: darkblue;
+        }
+
+        .bar {
+            background-color: #aa137d;
+        }
+    </style>
+</head>
+
+<body>
+    <section class='filler'>
+
+        <p>
+            Our population has become older in the last decade. Scroll to see how US's age distribution has changed
+        </p>
+        <h1></h1>
+
+    </section>
+
+    <section id='scrolly-overlay'>
+
+        <div class='scrolly'>
+
+            <!--  the chart   -->
+            <figure class='sticky'>
+                <div class = "chart-container">
+                    <svg width="1050px" height="500px"> </svg>
+                    <p class = "source">Source: Census</p>
+                    </div>
+                </figure>
+
+            <!--  step text   -->
+            <article>
+                <div class='step' year = '2010' data-index='0'>
+                    <p>U.S. Age Distribution, <span class='highlight'>In 2009</span></p>
+                </div>
+                <div class='step' year = '2019' data-index='1'>
+                    <p>U.S. Age Distribution, <span class='highlight'>In 2020</span></p>
+                </div>
+            </article>
+
+        </div>
+
+    </section>
+
+</body>
+
+<!-- add your script blocks at the end -->
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<script src="https://unpkg.com/enter-view@1.0.0/enter-view.min.js"></script>
+<!-- https://github.com/russellgoldenberg/enter-view -->
+
+
+<script>
+    const container = d3.select('#scrolly-overlay');
+    const stepSel = container.selectAll('.step'); //final all the step nodes
+
+
+    function updateChart(index) {
+        const sel = container.select(`[data-index='${index}']`);
+        const year = sel.attr('year');
+        stepSel.classed('is-active', (d, i) => i === index)
+        if (year == '2010') {
+            container.select(".bar").style("fill", "lightblue")
+
+        } else {
+            container.select(".bar").style("fill", "lightblue")
+        }
+    }
+
+    function init() {
+
+        enterView({ //our main view function
+            selector: stepSel.nodes(),
+            offset: 0.5, //when the slide is 50% away then trigger your chart
+            enter: el => { //what's supposed to happen when the slide enters?
+                const index = +d3.select(el).attr('data-index'); //extract the data-index attribute. this can be anything: a filter, a date, whatever.
+                const year = +d3.select(el).attr('year');
+                updateChart(index);
+            },
+            exit: el => { //what's supposed to happen when the slide exits?
+                let index = +d3.select(el).attr('data-index');
+                let year = +d3.select(el).attr('year')
+                index = Math.max(0, index - 1);
+                updateChart(index);
+            }
+        });
+
+    }
+    
+
+    init();
+    
+    let width = 1000;
+    let height = 500;
+    let svg = d3.select("body").select("svg")
+    let margin = { top: 0, right: 0, bottom: 10, left: 0 };
+
+    d3.csv("example.csv").then(function (data) {
+        console.log(data)
+
+        data.forEach(d => {
+            d.pop = +d.pop * 1000; //units are in thousands
+            d.percent = +d.percent / 100; //units need to be in decimals 
+            d.group = d.group.replace(".", ""); //remove pesky period
+        })
+
+        let year_state = 2019;
+
+        let data15 = [...data].filter(d => d.year == "2010")
+        let data19 = [...data].filter(d => d.year == "2019")
+
+        let margin = { top: 10, right: 10, bottom: 10, left: 30 };
+
+        let y = d3.scaleBand()
+            .domain(data19.map(d => d.group).reverse()) //d3 extent
+            .paddingInner(.05)
+            .range([height - margin.bottom, margin.top])
+
+
+        let x = d3.scaleLinear()
+            .domain([0, d3.max(data.map(function (d) { return d.percent }))])
+            .range([margin.left, width - margin.right])
+
+        let xAxisSettings = d3.axisBottom(x) //set axis to the left
+            .tickValues([.02,.04,.06])
+            .tickSize(10) //size of tick lines
+            .tickFormat(d3.format(".0%")) //what format do you want https://github.com/d3/d3-format 
+            .tickPadding(10) //distance from tick labels to tick marks
+
+        let yAxisSettings = d3.axisLeft(y)
+            .ticks(10)
+            .tickSize(-width)
+            .tickPadding(10)
+
+        //adding to the axes to our chart
+        let xAxisTicks = svg.append("g")
+            .attr("class", "x axis") //give each axis a class
+            .call(xAxisSettings)
+            .attr("transform", `translate(0,${height - margin.bottom})`)
+
+        let yAxisTicks = svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxisSettings)
+            .attr("transform", `translate(${margin.left},0)`)
+
+        let bars = svg.append("g")
+            .attr("class", "bars")
+
+        let hed = d3.select(".headline")
+
+        bars
+            .selectAll(".bar")
+            .data(data, d => d.group)
+            .join("rect")
+            .attr("class", "bar")
+            .attr("y", d => y(d.group))
+            .attr("height", y.bandwidth)
+            .attr("x", d => x(0))
+            .attr("width", d => x(d.percent) - x(0))
+            .style("fill", "lightblue")
+
+    })
+
+    
+
+    </script>
+</html>

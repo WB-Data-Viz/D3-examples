@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        .chart-container {
+            max-width: 1050px;
+            /* border: 3px solid red; */
+            margin: 0 auto;
+            /* auto centers the div */
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        svg {
+            /* border: 2px solid purple; */
+            overflow: visible;
+        }
+
+
+        h1 {
+            margin: 10px auto;
+        }
+
+        .x .domain {
+            display: none;
+        }
+
+        .y .domain {
+            display: none;
+        }
+
+        .y .tick text {
+            font-size: 14px;
+            fill: #333;
+
+        }
+
+        .x .tick text {
+            font-size: 14px;
+            fill: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chart-container">
+        <h1 class="headline">
+            Late Mail
+        </h1>
+
+        <svg width="1050px" height="500px">
+        </svg>
+        <p>Source: U.S. Postal Service</p>
+    </div>
+</body>
+
+<!-- add your script blocks at the end -->
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<!-- we're using d3 version 6 (the latest version) for all out work -->
+
+<script>
+    console.log(d3)
+    let width = 1050;
+    let height = 500;
+
+    let colors3day = ["#feedde", "#feedde", "#feedde", "#feb078", "#f1605d", "#b73779", "#721f81", "#2c115f"];
+
+    let color = d3.scaleOrdinal()
+        .domain(["Days1", "Days2", "Days3", "Days4", "Days5", "Days6", "Days7", "DaysGT7"])
+        .range(colors3day)
+        .unknown("#ccc")
+
+    let svg = d3.select("body").select("svg")
+
+    let margin = { top: 0, right: 0, bottom: 30, left: 0 };
+
+    d3.csv("by-week-stacked-3.csv").then(function (raw) {
+        console.log("loaded")
+        console.log({ raw })
+
+
+        let data = raw.filter(d => d.week_linear > 40 && d.week_linear <= 106);
+        console.log({ data })
+
+        data.forEach(d => {
+            d.week_linear = +d.week_linear
+            d.Days3 = +d.Days3
+            d.Days4 = +d.Days4
+            d.Days5 = +d.Days5
+            d.Days6 = +d.Days6
+            d.Days7 = +d.Days7
+            d.DaysGT7 = +d.DaysGT7
+        })
+
+        // //     //https://github.com/d3/d3-shape#stacks
+        let series = d3.stack()
+            .keys(["Days3", "Days4", "Days5", "Days6", "Days7", "DaysGT7"].reverse())
+            (data)
+
+        console.log({ series })
+
+        let x = d3.scaleBand()
+            .domain(data.map(d => d["first_day_of_week"]))
+            .range([0, width])
+            .paddingInner(0.05)
+
+        let y = d3.scaleLinear()
+            .domain([0, 1])
+            .rangeRound([height - margin.bottom, margin.top])
+
+        let group = svg.append("g")
+            .selectAll("g")
+            .data(series)
+            .join("g")
+            .attr("fill", d => color(d.key))
+
+        let bars = group
+            .selectAll("rect")
+            .data(d => d)
+            .join("rect")
+            .attr("x", (d, i) => x(d.data.first_day_of_week))
+            .attr("width", x.bandwidth())
+            .attr("y", d => y(d[1]))
+            .attr("height", d => y(d[0]) - y(d[1]))
+
+        let xTickSettings = d3.axisBottom(x)
+            .tickSize(0)
+            .tickPadding(12)
+            .tickFormat((d, i) => {
+                console.log(d, i)
+                if (i % 10 == 0) {
+                    return d3.timeFormat("%b. %d, %Y")(new Date(d)) ///https://github.com/d3/d3-time-format
+                } else {
+                    return ""
+                }
+            })
+
+        let xAxis = svg.append("g")
+            .attr("class", "y axis")
+            .attr("transform", `translate(0,${height - margin.bottom})`)
+            .call(xTickSettings)
+
+        let yTickSettings = d3.axisLeft(y)
+            .tickValues([.5, 1])
+            .tickSize(-width)
+            .tickPadding(4)
+            .tickFormat(d3.format(".0%"))
+
+        let yAxis = svg.append("g")
+            .attr("class", "y axis")
+            .attr("transform", `translate(${margin.left},0)`)
+            .call(yTickSettings)
+    })
+
+    
+
+</script>

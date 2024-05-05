@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <!-- set styles on the top -->
+    <style>
+        .chart-container {
+            max-width: 1050px;
+            /* border: 2px solid red; */
+            margin: 0 auto;
+            /* auto centers the div */
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        svg {
+            /* border: 2px solid purple; */
+            overflow: visible;
+        }
+
+        h1 {
+            margin: 0 auto;
+        }
+
+        .x .tick line {
+            stroke: rgba(0, 0, 0, .2);
+        }
+
+        .y .tick line {
+            stroke: rgba(0, 0, 0, .2);
+        }
+
+        .x .domain {
+            display: none;
+        }
+
+        .y .domain {
+            display: none;
+        }
+
+        .y .tick text {
+            font-size: 14px;
+            fill: #333;
+
+        }
+
+        .x .tick text {
+            font-size: 14px;
+            fill: #333;
+        }
+
+        .label {
+            font-size: 30px;
+            font-weight: 200;
+            font-family: "Arial";
+        }
+
+        .axis-label {
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .source {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chart-container">
+        <h1 class="headline">
+            The Decline Of Farming And The Rise Of Everything Else
+        </h1>
+
+        <svg width="1050px" height="575px">
+        </svg>
+        <p class="source">Source: NPR</p>
+
+    </div>
+</body>
+
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<!-- we're using d3 version 6 (the latest version) for all out work -->
+
+<script>
+    console.log({ d3 })
+
+    let width = 800;
+    let height = 500;
+
+    let svg = d3.select("body")
+        .select("svg")
+    
+    var parseDate = d3.timeParse("%Y");
+
+    d3.csv("firstjob_major_d3_3.csv").then(function (data) {
+
+        console.log({data})
+
+        let margin = { top: 10, right: 10, bottom: 10, left: 30 };
+
+        let sel_cols = [
+            "Farming",
+            "BlueCollar",
+            "Service",
+            "WhiteCollar",
+            "Other"]
+
+        let sel_colors = [
+            "#de96ff", // "Farming",
+            "#5a6da1", // "Blue Collar",
+            "#9eff95", // "Service",
+            "#37bfa0", // "White Collar",
+            "#bbecff" // "Other",
+        ]
+
+        data.forEach(function (d) {
+            d.year = parseDate(d.year)
+        })
+
+        console.log(data)
+
+    //     //https://github.com/d3/d3-shape#stacks
+        let series = d3.stack().keys(sel_cols)(data);
+
+        console.log({series})
+
+
+    //     // https://github.com/d3/d3-scale#ordinal-scales
+        let color = d3.scaleOrdinal()
+            .domain(sel_cols)
+            .range(sel_colors)
+
+        let x = d3.scaleTime()
+            .domain(d3.extent(data.map(function (d) { return d.year })))      //      .range([margin.left, width])
+            .range([margin.left, width])
+
+
+        let y = d3.scaleLinear()
+            .domain([0, 140000000])
+            .range([height - margin.bottom, margin.top])
+
+    //     //https://github.com/d3/d3-shape#areas
+        let area = d3.area()
+            .x(d => x(d.data.year))
+            .y0(d => y(d[0]))
+            .y1(d => y(d[1]))
+
+        let xAxisSettings = d3.axisBottom(x)
+            .tickSize(6)
+            .tickPadding(6)
+
+
+        let xAxis = svg.append("g")
+            .attr("class", "x axis")
+            .call(xAxisSettings)
+            .call(g => g.selectAll(".domain").remove())
+            .attr("transform", `translate(0,${height - margin.bottom})`)
+
+        let yAxisSettings = d3.axisLeft(y)
+            .tickSize(20)
+            .tickPadding(2)
+            .ticks(7)
+
+        let yAxis = svg
+            .append("g")
+            .attr("class", "y axis")
+            .call(yAxisSettings)
+            .call(g => g.selectAll(".domain").remove())
+            .attr("transform", `translate(0,${0})`)
+
+    //     //labelling 
+        svg.append("g")
+            .selectAll("path")
+            .data(series)
+            .join("path")
+            .attr("class", d =>  {
+                console.log(d)
+                return d.key
+            })
+            .attr("fill", d => color(d.key))
+            .attr("d", area)
+            .style("opacity", 0.7)
+
+        svg.append("text")
+            .attr("class", "label")
+            .attr("x", 600)
+            .attr("y", 150)
+            .text("Farming")
+
+        svg.append("text")
+            .attr("class", "label")
+            .attr("x", 600)
+            .attr("y", 300)
+            .text("Blue Collar")
+            .style("fill", "black")
+
+        svg.append("text")
+            .attr("class", "label")
+            .attr("x", 650)
+            .attr("y", 370)
+            .text("Services")
+            .style("fill", "black")
+
+            svg.append("text")
+            .attr("class", "label")
+            .attr("x", 600)
+            .attr("y", 450)
+            .text("White Collar")
+            .style("fill", "black")
+
+            svg.append("text")
+            .attr("class", "label")
+            .attr("x", 300)
+            .attr("y", 480)
+            .text("Other")
+            .style("fill", "black")
+
+
+ 
+    })
+
+</script>

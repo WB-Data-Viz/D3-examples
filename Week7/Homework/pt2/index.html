@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        .chart-container {
+            max-width: 1050px;
+            margin: 0 auto;
+            /* auto centers the div */
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        svg {
+            overflow: visible;
+        }
+
+
+        h1 {
+            text-align: center;
+            padding-bottom: 20px;
+        }
+
+        .pop-up {
+            position: absolute; 
+            border: 1px solid black;
+            border-radius: 1px;
+            pointer-events: none;
+            background-color: white;
+            padding: 10px;
+        }
+
+    </style>
+    <!-- add your script blocks at the end -->
+
+</head>
+
+<body>
+    <div class="chart-container">
+        <h1 class="headline">
+            Number of Children in Poverty in the US
+        </h1>
+
+        <svg width="1050px" height="500px">
+
+        </svg>
+
+        <div class="pop-up">
+        </div>
+    </div>
+</body>
+
+
+<!-- we're using d3 version 6 (the latest version) for all out work -->
+<script src="https://d3js.org/d3.v6.min.js"></script>
+
+<!-- load topojson script -->
+<script src="https://unpkg.com/topojson@3"></script>
+
+<script>
+    let width = 1250;
+    let height = 700;
+
+    let svg = d3.select("body").select("svg")
+//steps to save the .json on mapshaper:
+//1. import county, save as points
+// 2. import poverty, change join column to the same format (strings)
+// 3. join poverty data using common GEOFIPS
+// 4. add state
+// 5. export all as topo json
+    d3.json('output.json').then(function (data) { 
+
+        console.log({data})
+
+        let counties = topojson.feature(data, data.objects.county)
+        let state = topojson.feature(data, data.objects.cb_2018_us_state_20m)
+        console.log(counties)
+
+        let myProjection = d3.geoIdentity() // already did albers in mapshaper
+            .fitSize([width, height], state)
+            .reflectY(true) // flip the mapshaper layer
+
+        //path function
+        let path = d3.geoPath(myProjection)
+
+        let innerlines = topojson.mesh(data, data.objects.cb_2018_us_state_20m, function (a, b) {
+            return a != b;})
+
+        svg.append("g")
+            .attr("class", "states")
+            .selectAll("path")
+            .data(state.features)
+            .join("path")
+            .attr("d", path) // the d attribute defines the path to be drawn.
+            .style("fill", "lightgrey")
+            .style("stroke", "white")
+
+        svg
+             .append("path")
+             .attr("d", path(innerlines))
+             .style("fill", "none")
+             .style("stroke", "white")
+             .style("stroke-width", 1)
+
+        let circles = svg.append("g") // the data we are using is from the counties layer. 
+            .selectAll(".circles")
+            .data(counties.features.filter(d => d.geometry != null)) //.sort((a, b) => d3.descending(a.properties.pop_18_in_poverty, b.properties.pop_18_in_poverty)) // some of the rows have null geomtries // sort plots the bigger numbers before the smaller (so the smaller bubbles are on the top)
+            .join("circle")
+            .attr("class", function (d) { return "circles p-" + d.properties.GEOID}) // each bubbles get a class and give the GEOID to get counties feeature
+            .attr("transform", d => `translate(${myProjection([d.geometry.coordinates[0], d.geometry.coordinates[1]])})`)
+            .attr("fill", "orange")
+            .attr("stroke", "#fff")
+            .attr("fill-opacity", 0.5)
+            .attr("stroke-width", 0.5)
+            .attr("r", d => Math.sqrt(d.properties.pop_18_in_poverty / 200))
+
+            let popup = d3.select(".pop-up");
+
+            circles.on("mouseover", (event, d) => {
+                
+                circles
+                .style("stroke", "white")
+                .style("stroke-width", .5)
+                .style("fill", "orange")
+                .style("fill-opacity", .5)
+                
+                svg.select(".p-" + d.properties.GEOID) // make every selection unique - calling back the class we defined.
+                    .style("stroke-width", 5)
+                    .style("fill-opacity", 1)
+                    .raise()
+
+                let lang = d.properties.Geo_QName + ": <b>" + d.properties.pop_18_in_poverty + "</b> children in poverty"
+
+                popup
+                    .style("opacity", 1)
+                    .style("left", (event.x + 20) + "px")
+                    .style("top", (event.y - 20) + "px")
+                    .html(lang)
+            })
+
+            circles.on("mouseout", (event, d) => {
+                console.log(event)
+                circles
+                    svg.select(".p-" + d.properties.GEOID)
+                    .style("stroke-width", 0.5)
+                    .style("opacity", 1) // after you leave the hover, change back to 0.5
+                    .raise()
+
+                popup
+                    .style("opacity", 0) // pop up becomes invisible when we mouseout
+            })
+
+        })
+
+</script>

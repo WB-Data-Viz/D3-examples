@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        .chart-container {
+            max-width: 1050px;
+            border: 3px solid red;
+            margin: 0 auto;
+            /* auto centers the div */
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        svg {
+            border: 2px solid purple;
+            overflow: visible;
+        }
+
+
+        h1 {
+            border: 2px solid green;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chart-container">
+        <h1 class="headline">
+            Population of the United States
+        </h1>
+
+        <svg width="1050px" height="500px">
+
+        </svg>
+    </div>
+</body>
+
+<!-- add your script blocks at the end -->
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<!-- we're using d3 version 6 (the latest version) for all out work -->
+
+<script>
+    console.log(d3)
+    let width = 1050;
+    let height = 500;
+
+    let svg = d3.select("body").select("svg")
+
+    //console.log
+
+    //arrays
+    //objects
+    //functions
+    let margin = { top: 0, right: 0, bottom: 0, left: 0 };
+
+
+    d3.csv("age.csv").then(function (data) {
+        console.log("loaded")
+
+        data.forEach(d => {
+            d.pop = +d.pop
+        })
+
+        let groups = data.map(d => d.group)
+        console.log(data, groups)
+
+        let y = d3.scaleBand()
+            .domain(groups.reverse())
+            .paddingInner(.02)
+            .range([height - margin.bottom, margin.top])
+
+
+        let x = d3.scaleLinear()
+            .domain([0, d3.max(data.map(d => d.pop))])
+            .range([margin.left, width - margin.right])
+
+
+        let yAxisSettings = d3.axisLeft(y) //set axis to the left
+            .ticks(5) //approx how many ticks, the function will not necesarily give you that number
+            .tickSize(-width) //size of tick lines
+            .tickPadding(10) //distance from tick labels to tick marks
+
+        let xAxisSettings = d3.axisBottom(x)
+            .tickSize(10)
+            .tickFormat(d3.format(".0f")) //what format do you want https://github.com/d3/d3-format 
+            .tickPadding(10)
+
+        //adding to the axes to our chart
+        let xAxisTicks = svg.append("g")
+            .attr("class", "x axis") //give each axis a class
+            .call(xAxisSettings)
+            .attr("transform", `translate(0,${height - margin.bottom})`)
+
+        let yAxisTicks = svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxisSettings)
+            .attr("transform", `translate(${margin.left},0)`)
+
+        let bars = svg.append("g")
+            .attr("class", "bars")
+            .selectAll(".bar")
+            .data(data)
+            .join("rect")
+            .attr("class", "bar")
+            .attr("x", d => x(0))
+            .attr("width", d => x(d.pop) - x(0))
+            .attr("y", d => y(d.group))
+            .attr("height", y.bandwidth())
+
+
+
+
+    })
+
+</script>

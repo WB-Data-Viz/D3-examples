@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        .chart-container {
+            max-width: 1050px;
+            border: 3px solid red;
+            margin: 0 auto;
+            /* auto centers the div */
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        svg {
+            border: 2px solid purple;
+            overflow: visible;
+        }
+
+
+        h1 {
+            border: 2px solid green;
+        }
+    </style>
+    <!-- add your script blocks at the end -->
+
+</head>
+
+<body>
+    <div class="chart-container">
+        <h1 class="headline">
+            D3 starter template
+        </h1>
+
+        <svg width="1050px" height="500px">
+
+        </svg>
+    </div>
+</body>
+
+
+<!-- we're using d3 version 6 (the latest version) for all out work -->
+<script src="https://d3js.org/d3.v6.min.js"></script>
+
+<script>
+    // console.log(d3)
+
+    // //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
+    Promise.all([ //waits for all the data to load, then when loaded will return it all in one array called res
+        d3.json('county.json'),
+    ])
+        .then(ready)
+        .catch((err) => {
+            console.log(err);
+        });
+
+    function ready(res) {
+        console.log(res[0])
+        let data = res[0]
+        let width = 1050;
+        let height = 500;
+
+        console.log(data.features)
+
+        let svg = d3.select("body").select("svg")
+
+        let myProjection = d3.geoAlbersUsa()
+            .fitSize([width, height], data)
+
+        //path function
+        let path = d3.geoPath()
+            .projection(myProjection)
+
+        // svg.append("path")
+        //     .attr("d", path(data))
+        //     .style("fill", "none")
+        //     .style("stroke", "#333")
+
+        svg.append("g")
+            .selectAll(".counties")
+            .data(data.features)
+            .join("path")
+            .attr("d", path)
+            .attr("class", d => d.properties.GEOID)
+            .style("fill", "none")
+            .style("stroke", "#333")
+
+    }
+
+
+
+
+
+
+
+
+</script>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        .chart-container {
+            max-width: 1050px;
+            margin: 0 auto;
+            /* auto centers the div */
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        svg {
+            /* border: 2px solid purple; */
+            overflow: visible;
+        }
+
+        svg .y.axis .tick line {
+            display: none;
+        }
+
+        svg .y.axis .tick text {
+            font-size: 14px;
+        }
+
+        svg .x.axis .tick text {
+            font-size: 14px;
+        }
+
+        svg .y.axis .domain {
+            display: none;
+        }
+
+        svg .x.axis .domain {
+            display: none;
+        }
+
+        h1 {
+            margin-left: 30px;
+        }
+
+        .source {
+            margin-top: 30px;
+            margin-left: 30px;
+
+        }
+
+        .highlight {
+            text-decoration: underline;
+            color: darkblue;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chart-container">
+        <h1 class="headline">
+            U.S. Age Distribution, <span class='highlight'>In 2019</span>
+        </h1>
+
+        <svg width="1050px" height="500px">
+
+        </svg>
+        <p class="source">Source: Census</p>
+    </div>
+</body>
+
+<!-- add your script blocks at the end -->
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<!-- we're using d3 version 6 (the latest version) for all out work -->
+
+<script>
+    console.log(d3)
+    let width = 1050;
+    let height = 500;
+
+    let svg = d3.select("body").select("svg")
+
+    d3.csv("example.csv").then(function (data) {
+        console.log("loaded")
+        console.log(data)
+
+        data.forEach(d => {
+            d.pop = +d.pop * 1000; //units are in thousands
+            d.percent = +d.percent / 100; //units need to be in decimals 
+            d.group = d.group.replace(".", ""); //remove pesky period
+        })
+
+        let year_state = 2019;
+
+        let data15 = [...data].filter(d => d.year == "2010")
+        let data19 = [...data].filter(d => d.year == "2019")
+
+        let margin = { top: 10, right: 10, bottom: 10, left: 30 };
+
+        let y = d3.scaleBand()
+            .domain(data19.map(d => d.group).reverse()) //d3 extent
+            .paddingInner(.05)
+            // .range([margin.left, width - margin.right])
+            .range([height - margin.bottom, margin.top])
+
+
+        let x = d3.scaleLinear()
+            .domain([0, d3.max(data.map(function (d) { return d.percent }))])
+            .range([margin.left, width - margin.right])
+
+        let xAxisSettings = d3.axisBottom(x) //set axis to the left
+            .tickValues([.02,.04,.06])
+            .tickSize(10) //size of tick lines
+            .tickFormat(d3.format(".0%")) //what format do you want https://github.com/d3/d3-format 
+            .tickPadding(10) //distance from tick labels to tick marks
+
+        let yAxisSettings = d3.axisLeft(y)
+            .ticks(10)
+            .tickSize(-width)
+            .tickPadding(10)
+
+        //adding to the axes to our chart
+        let xAxisTicks = svg.append("g")
+            .attr("class", "x axis") //give each axis a class
+            .call(xAxisSettings)
+            .attr("transform", `translate(0,${height - margin.bottom})`)
+
+        let yAxisTicks = svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxisSettings)
+            .attr("transform", `translate(${margin.left},0)`)
+
+        let bars = svg.append("g")
+            .attr("class", "bars")
+
+        let bar;
+        let hed = d3.select(".headline")
+
+        bars
+            .selectAll(".bar")
+            .data(data19, d => d.group)
+            .join("rect")
+            .attr("class", "bar")
+            .attr("y", d => y(d.group))
+            .attr("height", y.bandwidth)
+            .attr("x", d => x(0))
+            .attr("width", d => x(d.percent) - x(0))
+            .style("fill", "lightblue")
+
+
+
+        function update() {
+            console.log("update")
+            console.log("old year state " + year_state);
+
+            if (year_state == 2019) {
+                year_state = 2010
+                dance(data15)
+           //     hed.html("U.S. Age Distribution, <span class='highlight'>In 2010</span>")
+
+            } else {
+                year_state = 2019
+                dance(data19)
+           //     hed.html("U.S. Age Distribution, <span class='highlight'>In 2019</span>")
+            }
+            console.log("new year state " + year_state);
+        }
+
+        function dance(filtered_data) {
+            bars
+                .selectAll(".bar")
+                .data(filtered_data, d => d.group)  // the key in which you want to join the data. We're swapping another row of data (instead of columns)
+                .join("rect")
+                .attr("class", "bar")
+                .transition()
+                .duration(500)
+                .ease(d3.easeLinear)
+                .attr("y", d => y(d.group))
+                .attr("height", y.bandwidth)
+                .attr("x", d => x(0))
+                .attr("width", d => x(d.percent) - x(0))
+                .style("fill", "lightblue")
+
+        }
+
+        var timer = d3.interval(update, 3000) //in milliseconds // call the function that you want to execute every x amount of time that passes.
+
+        bars.on("click", () => {
+            timer.stop();
+        })
+
+    })
+
+</script>

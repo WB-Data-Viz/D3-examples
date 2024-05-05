@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        .chart-container {
+            max-width: 1050px;
+            margin: 0 auto;
+            /* auto centers the div */
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        svg {
+            /* border: 2px solid purple; */
+            overflow: visible;
+        }
+
+        h1 {
+            margin: 0 auto;
+        }
+
+        .x .tick line {
+            stroke: rgba(0, 0, 0, .2);
+        }
+
+        .y .tick line {
+            stroke: rgba(26, 24, 24, 0.2);
+        }
+
+        .x .domain {
+            display: none;
+        }
+
+        .y .domain {
+            display: none;
+        }
+
+        .y .tick text {
+            font-size: 14px;
+            fill: rgb(78, 75, 75);
+
+        }
+
+        .x .tick text {
+            font-size: 14px;
+            fill:rgb(78, 75, 75);
+        }
+
+        .label {
+            font-size: 35px;
+            font-weight: 200;
+        }
+
+        .axis-label {
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .source {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .bar {
+            fill: #FF5733;
+        }
+
+        line {
+            stroke: black;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chart-container">
+        <h1 class="headline">
+            More than 3 million Americans lost their jobs last week.
+        </h1>
+
+        <svg width="1050px" height="500px">
+
+        </svg>
+        <p> </p>
+        <p class="source">Source: New York Times</p>
+
+    </div>
+</body>
+
+<!-- add your script blocks at the end -->
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<!-- we're using d3 version 6 (the latest version) for all out work -->
+
+<script>
+    console.log(d3)
+    let width = 1050;
+    let height = 500;
+
+    let svg = d3.select("body").select("svg")
+
+    let margin = { top: 10, right: 30, bottom: 10, left: 10 };
+    let g = svg.append("g")
+            .attr("transform", `translate(${margin.left},0)`)
+
+    var xScale = d3.scaleTime()
+    .range([margin.left, width - margin.right])
+    
+    var yScale = d3.scaleLinear()
+    .range([height - margin.bottom, margin.top])
+
+    var parseDate = d3.timeParse("%m/%d/%Y");
+
+    d3.csv("all-states2_sum.csv").then(function (data) {
+        console.log(data)
+
+        data.forEach(function (d) {
+            d.date = parseDate(d.date);
+            d.value = +d.value;
+        })
+
+        yScale.domain([0, d3.max(data.map(function (d) { return d.value }))])
+        xScale.domain(d3.extent(data.map(function (d) { return d.date }))) //d3 extent will look at all of the date values and pick the smallest and largest
+
+        let yAxisSettings = d3.axisRight(yScale) //set axis to the left
+            .ticks(6) 
+            .tickSize(-width + margin.right) //size of tick lines
+            .tickFormat(d3.format(".2r")) //what format do you want https://github.com/d3/d3-format 
+            .tickPadding(5) //distance from tick labels to tick marks
+
+        let xAxisSettings = d3.axisBottom(xScale)
+            .ticks(8)
+            .tickSize(8)
+            .tickPadding(10)
+            .tickFormat(d3.timeFormat("%Y"))
+
+        let xAxisTicks = svg.append("g")
+            .attr("class", "x axis") //give each axis a class
+            .call(xAxisSettings)
+            .attr("transform", `translate(0,${height - margin.bottom})`)
+
+        let yAxisTicks = svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxisSettings)
+            .attr("transform", `translate(${width - margin.right + 20},0)`)
+
+        g.selectAll(".bar")
+            .data(data)
+            .enter().append("rect")
+            .attr("class", "bar")
+            .attr("x", function(d) { return xScale(d.date); })
+            .attr("y", function(d) { return yScale(d.value); })
+            .attr("width", 1.5)
+            .attr("height", function(d) { return height - yScale(d.value) })
+
+        var ymeandec = d3.mean(data, function(d) { return d.value; });
+        var ymean = ymeandec.toFixed(0)
+
+        console.log(ymean)
+        svg.append("line")
+            .style("stroke", "black")
+            .attr("x1", 20)
+            .attr("x2", 1030)
+            .attr("y1", yScale(ymean))
+            .attr("y2", yScale(ymean));
+
+        svg.selectAll("text.label")
+            .data(data)
+            .enter().append("text")
+            .attr("class", "label")
+            .attr("x", function (d) { return xScale(d.date) }) //callback to access the data, position according to x axis
+            .attr("y", function (d) { return yScale(d.value) })  //callback to access the data, position according to y axis
+            .text(function (d) { if(d.value>1000000) return d.value })
+            .attr('dx', 20) 
+            .attr('dy', 10) 
+            .style("fill", "#FF5733")
+
+        svg.append("g")
+        .append("text")
+        .attr("class", "avg")
+        .attr("x", 900)
+        .attr("y", 430)
+        .text("Weekly Average: " + ymean)
+        .style("font-family", "Arial Narrow")
+        .style("font-size", 12)
+ 
+       // if time: filter the date var dataFilter = data.filter(function(d){return d.date==17})
+
+        })
+
+ 
+
+</script>

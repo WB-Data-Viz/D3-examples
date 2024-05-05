@@ -1,0 +1,65 @@
+---
+title: "Week 1 Lecture"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+library(zoo)
+```
+
+```{r}
+#states = read_csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv", col_types = cols(.default = "c")) #Read everything as a character, and declare later things as numeric 
+
+states = read_csv("hw1-data.csv")
+
+states.clean = states %>% 
+  mutate(cases = as.numeric(cases),
+         deaths = as.numeric(deaths),
+         date = as.Date(date)) ## default Date arguments need to be year, month, and day for this function to work.
+
+```
+
+*1.How many unique values are in the state variable?*
+There are 57 unique values in the state variable
+```{r}
+length(unique(states$state)) ## 57 
+```
+*2.List the unique values in the state variable.*
+Includes territories and USA (Virgin Islands, Northern Mariana Islands, Guam, etc.)
+```{r}
+unique(sort(states$state))
+
+```
+3.Make a coronavirus chart for the United States and California
+```{r}
+states_slx = states %>% 
+illinois = states.clean %>% 
+  filter(state == "Illinois") %>%
+  arrange(date) %>% 
+  mutate(daily_cases = cases - lag(cases), 
+         #calculate daily rather than cumulative cases
+         roll_avg_7 = rollmean(x=daily_cases, k = 7, align = "right", na.pad = T)
+         #add a layer for rolling 7 day averages to reduce noise
+  )
+
+pdf("Illinois.pdf")
+
+chart = illinois %>% 
+  ggplot(aes(x=date, y = roll_avg_7)) +
+  geom_bar(stat = "identity", aes(x=date, daily_cases), alpha = 0.3) + 
+  ## alpha de-emphasizes the noise 
+  geom_line(color = "darkgreen", size = 1) + 
+  theme_minimal() +
+  labs(y= "Daily Case Counts", 
+       x = "",
+       title = "Daily COVID19 cases in Illinois") ## we don't really need to have an x-label for dates because they're obvious
+
+print(chart)
+
+dev.off() ## tell R to stop saving everything i print
+```
+
+4.Make a PDF of those charts.5.Submit your R script and PDF.
+

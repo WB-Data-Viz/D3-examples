@@ -1,0 +1,60 @@
+﻿fips,county,ruc,change
+0,California,,0.061
+1,Alameda County,1,0.107
+2,Alpine County,8,-0.039
+5,Amador County,6,0.044
+7,Butte County,3,-0.004
+9,Calaveras County,6,0.007
+11,Colusa County,6,0.007
+13,Contra Costa County,1,0.099
+15,Del Norte County,7,-0.028
+17,El Dorado County,1,0.065
+19,Fresno County,2,0.074
+21,Glenn County,6,0.01
+23,Humboldt County,5,0.007
+25,Imperial County,3,0.038
+27,Inyo County,7,-0.027
+29,Kern County,2,0.072
+31,Kings County,3,0
+33,Lake County,4,-0.004
+35,Lassen County,7,-0.124
+37,Los Angeles County,1,0.022
+39,Madera County,3,0.043
+41,Marin County,1,0.025
+43,Mariposa County,8,-0.057
+45,Mendocino County,4,-0.013
+47,Merced County,2,0.086
+49,Modoc County,6,-0.087
+51,Mono County,7,0.017
+53,Monterey County,2,0.046
+55,Napa County,3,0.009
+57,Nevada County,4,0.01
+59,Orange County,1,0.055
+61,Placer County,1,0.143
+63,Plumas County,7,-0.06
+65,Riverside County,1,0.128
+67,Sacramento County,1,0.094
+69,San Benito County,1,0.136
+71,San Bernardino County,1,0.071
+73,San Diego County,1,0.078
+75,San Francisco County,1,0.095
+77,San Joaquin County,2,0.112
+79,San Luis Obispo County,2,0.05
+81,San Mateo County,1,0.067
+83,Santa Barbara County,2,0.053
+85,Santa Clara County,1,0.082
+87,Santa Cruz County,2,0.041
+89,Shasta County,3,0.016
+91,Sierra County,8,-0.072
+931,Siskiyou County,6,-0.03
+95,Solano County,2,0.083
+97,Sonoma County,2,0.022
+99,Stanislaus County,2,0.07
+101,Sutter County,3,0.023
+103,Tehama County,4,0.026
+105,Trinity County,8,-0.109
+107,Tulare County,2,0.054
+109,Tuolumne County,4,-0.016
+111,Ventura County,2,0.027
+113,Yolo County,1,0.098
+115,Yuba County,3,9

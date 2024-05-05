@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        .chart-container {
+            max-width: 1050px;
+            margin: 0 auto;
+            /* auto centers the div */
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        }
+
+        svg {
+            overflow: visible;
+        }
+
+
+    </style>
+    <!-- add your script blocks at the end -->
+
+</head>
+
+<body>
+    <div class="chart-container">
+        <h1 class="headline">
+            D3 starter template
+        </h1>
+
+        <svg width="1050px" height="500px">
+
+        </svg>
+    </div>
+</body>
+
+
+<!-- we're using d3 version 6 (the latest version) for all out work -->
+<script src="https://d3js.org/d3.v6.min.js"></script>
+
+<script>
+    // console.log(d3)
+
+    // //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
+    Promise.all([ //waits for all the data to load, then when loaded will return it all in one array called res
+        d3.json('county1.json'),
+    ])
+        .then(ready)
+        .catch((err) => {
+            console.log(err);
+        });
+
+    function ready(res) {
+        console.log(res[0])
+        let data = res[0]
+        let width = 1050;
+        let height = 500;
+
+        console.log(data.features) // we can see the array
+
+        let svg = d3.select("body").select("svg")
+
+        //github.com/d3/d3-geo
+        let myProjection = d3.geoAlbersUsa() // define a projection to fit the map to browser.
+            .fitSize([width, height], data) // fit the height with the data that we're using
+
+        //path function
+        let path = d3.geoPath() // path generator specific to geographic data. You can give it polygons, strings, etc. it will know how to plot lines
+            .projection(myProjection)
+
+        // svg.append("path")
+        //     .attr("d", path(data))
+        //     .style("fill", "none")
+        //     .style("stroke", "#333") instead of passing through the entire dataset, we are passing through the array of 3233 features
+
+        svg.append("g") // group everything together
+            .selectAll(".counties")
+            .data(data.features) // we are only passing through features of array
+            .join("path")  
+            .attr("d", path)
+            .attr("class", d => d.properties.GEOID) // each class has a GEOID
+            .style("fill", "none")
+            .style("stroke", "#333")
+
+    }
+
+
+
+
+
+
+
+
+</script>
